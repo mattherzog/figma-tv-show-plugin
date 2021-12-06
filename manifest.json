@@ -1,0 +1,10 @@
+{
+  "name": "tv-example",
+  "id": "1049476757377580970",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figma"
+  ],
+  "ui": "ui.html"
+}

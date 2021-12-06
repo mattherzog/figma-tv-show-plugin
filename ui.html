@@ -1,0 +1,155 @@
+<!-- Plugin UI HTML -->
+<h3>TV Show Preview Tool</h3>
+<p>TV Show</p>
+<input id="tv-show" value="Golden Girls" autofocus>
+<div class="buttons">
+  <div class="buttons-section-1">
+    <button class="constructive" id="create">Apply</button>
+    <button class="destructive" id="cancel">Cancel</button>
+  </div>
+  <div class="buttons-section-2">
+    <button class="secondary" id="random">Random</button>
+  </div>
+</div>
+<div>
+  <p>Supported layer names: #ShowName, #ShowDescription, #Genre1, #Genre2, #RunTime, #Status, #Rating, #CoverImage</p>
+</div>
+
+<!-- Plugin UI Javscript -->
+<script>
+  const randomShow = () => {
+    const randomShows = [
+      "Friends",
+      "Lost",
+      "Big Bang Theory",
+      "Succession",
+      "Stranger Things",
+      "Foundation",
+      "Curb your enthusiasm",
+      "Seinfeld",
+      "Squid game",
+      "Sopranos",
+      "Westworld",
+      "True Detective",
+      "Deadwood",
+      "Star Trek",
+      "Black Mirror",
+      "The Office",
+      "Parks and Recreation"
+    ]
+    return randomShows[Math.round((randomShows.length - 1) * Math.random())]
+  }
+
+  document.getElementById("create").onclick = () => {
+    initiatePopulation(document.getElementById("tv-show").value)
+  }
+
+  document.getElementById('random').onclick = () => {
+    const show = randomShow()
+    document.getElementById("tv-show").value = show
+    initiatePopulation(show)
+  }
+
+  const initiatePopulation = query => {
+    fetch(`https://api.tvmaze.com/search/shows?q=${query}`)
+      .then(response => {
+        response.json().then(results => {
+          const show = results[0].show
+          const layerMap = {
+            "#ShowName": show.name,
+            "#ShowDescription": show.summary.replace(/<[^>]*>?/gm, ""),
+            "#Genre1": show.genres[0],
+            "#Genre2": show.genres[1],
+            "#RunTime": `${show.averageRuntime}m`,
+            "#Status": show.status,
+            "#Rating": show.rating.average ? show.rating.average.toString() : "-",
+            "#CoverImage": show.image.medium
+          }
+          window.parent.postMessage({ pluginMessage: { type: "populateShow", data: layerMap } }, "*")
+          loadImage(layerMap["#CoverImage"], "#CoverImage")
+        });
+      })
+  }
+
+  const loadImage = (imageUrl, layerName) => {
+    fetch(imageUrl)
+      .then(response => response.blob())
+      .then(
+        blob =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(new Uint8Array(reader.result));
+            reader.readAsArrayBuffer(blob);
+          })
+      )
+      .then(imageBytes => {
+        const pluginMessage = {
+          type: "populateImage",
+          data: {
+            imageBytes: imageBytes,
+            key: layerName
+          }
+        }
+        parent.postMessage({ pluginMessage: pluginMessage }, "*");
+      });
+  }
+
+  document.getElementById('cancel').onclick = () => {
+    const pluginMessage = { type: "cancel" }
+    parent.postMessage({ pluginMessage: pluginMessage }, "*")
+  }
+</script>
+
+<!-- Plugin UI styles -->
+<style>
+  html {
+    padding: 0px;
+    margin: 0px;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 16px;
+    margin: 0px;
+  }
+
+  p {
+    color: rgba(0, 0, 0, 0.54);
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  input {
+    padding: 8px 4px;
+    margin: 8px 0px;
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    width: 100%;
+  }
+
+  button {
+    padding: 8px 16px;
+    border-radius: 2px;
+    border: 0px;
+    background-color: black;
+    color: white;
+    border-radius: 16px;
+  }
+
+  button.destructive {
+    color: black;
+    background-color: transparent;
+  }
+
+  button.secondary {
+    color: black;
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
